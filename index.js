@@ -21,7 +21,7 @@ app.disable("x-powered-by");
 app.get("/", (req, res) => {
   res.type("html").send(`
     <h2>Tanvir143 FakeChat API</h2>
-    <p>Status: OnliXne</p>
+    <p>Status: Online</p>
     <p>Endpoint: /api/fakechat?name=Tanvir&avatarurl=IMAGE_URL&text=Hi</p>
   `);
 });
@@ -166,7 +166,7 @@ function makeOverlay({
   }
 
   const lineHeight = fontSize * 1.35;
-  const paddingX = 16;
+  const paddingX = 18;
   const paddingY = 14;
   
   let maxLineLength = 1;
@@ -185,11 +185,11 @@ function makeOverlay({
       width="${width}" height="${height}">
   `;
 
-  // Smooth Instagram dark mode bubble background with optimal corner rounding
+  // Corner radius 25 dewa holo
   output += `
     <rect x="${bubbleX}" y="${bubbleY}"
       width="${bubbleWidth}" height="${bubbleHeight}"
-      rx="20" ry="20"
+      rx="25" ry="25"
       fill="#262626" />
   `;
 
@@ -255,12 +255,11 @@ app.get("/api/fakechat", async (req, res) => {
       Math.round(minSide * 0.4)
     );
 
-    // Exact DP position mapping
     const avatarX = Math.round(numberParam(q.avatarX, width * 0.04, 0, width - avatarSize));
     const avatarY = Math.round(numberParam(q.avatarY, height * 0.73, 0, height - avatarSize));
 
-    // Precise text starting coordinates aligned right beside the DP
-    const startX = numberParam(q.textX, avatarX + avatarSize + 16, 0, width);
+    // DP theke text er distance ektu bariye dewa holo (+22 px gap)
+    const startX = numberParam(q.textX, avatarX + avatarSize + 22, 0, width);
     const startY = numberParam(q.textY, avatarY + avatarSize - 4, 0, height);
 
     const overlays = [];
