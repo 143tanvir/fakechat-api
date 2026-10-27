@@ -21,7 +21,7 @@ app.disable("x-powered-by");
 app.get("/", (req, res) => {
   res.type("html").send(`
     <h2>Tanvir143 FakeChat API</h2>
-    <p>Status: FuckYou</p>
+    <p>Status: OnliXne</p>
     <p>Endpoint: /api/fakechat?name=Tanvir&avatarurl=IMAGE_URL&text=Hi</p>
   `);
 });
@@ -174,10 +174,9 @@ function makeOverlay({
     if (line.length > maxLineLength) maxLineLength = line.length;
   }
 
-  const bubbleWidth = Math.max(50, maxLineLength * (fontSize * 0.52) + paddingX * 2);
+  const bubbleWidth = Math.max(55, maxLineLength * (fontSize * 0.52) + paddingX * 2);
   const bubbleHeight = allLines.length * lineHeight + paddingY * 2;
   
-  // Screenshot-er moto bubble nicher dike fixed thakbe, boro hoile uporer dike barbe
   const bubbleY = startY - bubbleHeight + paddingY;
   const bubbleX = startX - paddingX;
 
@@ -186,11 +185,11 @@ function makeOverlay({
       width="${width}" height="${height}">
   `;
 
-  // Screenshot-er moto smooth rounded corners (rx="22", ry="22") ebong dark grey background (#262626)
+  // Smooth Instagram dark mode bubble background with optimal corner rounding
   output += `
     <rect x="${bubbleX}" y="${bubbleY}"
       width="${bubbleWidth}" height="${bubbleHeight}"
-      rx="22" ry="22"
+      rx="20" ry="20"
       fill="#262626" />
   `;
 
@@ -256,11 +255,11 @@ app.get("/api/fakechat", async (req, res) => {
       Math.round(minSide * 0.4)
     );
 
-    // Screenshot-er sathe exact match korar moto DP position
+    // Exact DP position mapping
     const avatarX = Math.round(numberParam(q.avatarX, width * 0.04, 0, width - avatarSize));
     const avatarY = Math.round(numberParam(q.avatarY, height * 0.73, 0, height - avatarSize));
 
-    // Text & bubble-er proper alignment (DP er thik pashe spacing rekhe)
+    // Precise text starting coordinates aligned right beside the DP
     const startX = numberParam(q.textX, avatarX + avatarSize + 16, 0, width);
     const startY = numberParam(q.textY, avatarY + avatarSize - 4, 0, height);
 
