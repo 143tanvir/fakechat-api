@@ -107,7 +107,7 @@ async function makeCircularAvatar(buffer, size) {
     .toBuffer();
 }
 
-function wrapText(text, maxChars = 32) {
+function wrapText(text, maxChars = 34) {
   const lines = [];
 
   for (const paragraph of String(text).split("\n")) {
@@ -153,54 +153,56 @@ function makeOverlay({
   width,
   height,
   text,
-  textX,
-  textY,
+  startX,
+  startY,
   fontSize
 }) {
   const messages = String(text).slice(0, 2000).split("|").slice(0, 15);
 
   let allLines = [];
   for (const message of messages) {
-    const lines = wrapText(message, 32);
+    const lines = wrapText(message, 34);
     allLines.push(...lines);
   }
 
   const lineHeight = fontSize * 1.35;
-  const paddingX = 14;
-  const paddingY = 10;
+  const paddingX = 16;
+  const paddingY = 14;
   
   let maxLineLength = 1;
   for (const line of allLines) {
     if (line.length > maxLineLength) maxLineLength = line.length;
   }
 
-  const bubbleWidth = Math.max(45, maxLineLength * (fontSize * 0.52) + paddingX * 2);
+  const bubbleWidth = Math.max(50, maxLineLength * (fontSize * 0.52) + paddingX * 2);
   const bubbleHeight = allLines.length * lineHeight + paddingY * 2;
-  const bubbleX = textX - paddingX;
-  const bubbleY = textY - fontSize - paddingY + 2;
+  
+  // Bubble uporer dike barabe, bottom edge fixed thakbe
+  const bubbleY = startY - bubbleHeight + paddingY;
+  const bubbleX = startX - paddingX;
 
   let output = `
     <svg xmlns="http://www.w3.org/2000/svg"
       width="${width}" height="${height}">
   `;
 
-  // Dynamic Instagram style dark grey chat bubble
+  // Screenshot er moto aro gol (rounded) corner er dark grey chat bubble
   output += `
     <rect x="${bubbleX}" y="${bubbleY}"
       width="${bubbleWidth}" height="${bubbleHeight}"
-      rx="18" ry="18"
+      rx="22" ry="22"
       fill="#262626" />
   `;
 
-  let y = textY;
+  let y = bubbleY + paddingY + fontSize - 4;
   for (const message of messages) {
-    const lines = wrapText(message, 32);
+    const lines = wrapText(message, 34);
 
     for (const line of lines) {
       if (y > height - 10) break;
 
       output += `
-        <text x="${textX}" y="${y}"
+        <text x="${startX}" y="${y}"
           font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
           font-size="${fontSize}"
           fill="#ffffff">${escapeXml(line)}</text>
@@ -254,13 +256,13 @@ app.get("/api/fakechat", async (req, res) => {
       Math.round(minSide * 0.4)
     );
 
-    // Precise coordinates matching the provided screenshot layout
+    // DP er exact position screenshot onujayi
     const avatarX = Math.round(numberParam(q.avatarX, width * 0.04, 0, width - avatarSize));
-    const avatarY = Math.round(numberParam(q.avatarY, height * 0.72, 0, height - avatarSize));
+    const avatarY = Math.round(numberParam(q.avatarY, height * 0.73, 0, height - avatarSize));
 
-    // Text & bubble starts right beside the avatar horizontally, aligned vertically
-    const textX = numberParam(q.textX, avatarX + avatarSize + 16, 0, width);
-    const textY = numberParam(q.textY, avatarY + (avatarSize * 0.58), 0, height);
+    // Text shuru hobe DP er pashe theke, ebong bubble er baseline calculate hobe
+    const startX = numberParam(q.textX, avatarX + avatarSize + 16, 0, width);
+    const startY = numberParam(q.textY, avatarY + avatarSize - 4, 0, height);
 
     const overlays = [];
 
@@ -282,8 +284,8 @@ app.get("/api/fakechat", async (req, res) => {
         width,
         height,
         text,
-        textX,
-        textY,
+        startX,
+        startY,
         fontSize
       }),
       left: 0,
