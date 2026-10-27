@@ -21,7 +21,7 @@ app.disable("x-powered-by");
 app.get("/", (req, res) => {
   res.type("html").send(`
     <h2>Tanvir143 FakeChat API</h2>
-    <p>Status: Online</p>
+    <p>Status: FuckYou</p>
     <p>Endpoint: /api/fakechat?name=Tanvir&avatarurl=IMAGE_URL&text=Hi</p>
   `);
 });
@@ -177,7 +177,7 @@ function makeOverlay({
   const bubbleWidth = Math.max(50, maxLineLength * (fontSize * 0.52) + paddingX * 2);
   const bubbleHeight = allLines.length * lineHeight + paddingY * 2;
   
-  // Bubble uporer dike barabe, bottom edge fixed thakbe
+  // Screenshot-er moto bubble nicher dike fixed thakbe, boro hoile uporer dike barbe
   const bubbleY = startY - bubbleHeight + paddingY;
   const bubbleX = startX - paddingX;
 
@@ -186,7 +186,7 @@ function makeOverlay({
       width="${width}" height="${height}">
   `;
 
-  // Screenshot er moto aro gol (rounded) corner er dark grey chat bubble
+  // Screenshot-er moto smooth rounded corners (rx="22", ry="22") ebong dark grey background (#262626)
   output += `
     <rect x="${bubbleX}" y="${bubbleY}"
       width="${bubbleWidth}" height="${bubbleHeight}"
@@ -256,11 +256,11 @@ app.get("/api/fakechat", async (req, res) => {
       Math.round(minSide * 0.4)
     );
 
-    // DP er exact position screenshot onujayi
+    // Screenshot-er sathe exact match korar moto DP position
     const avatarX = Math.round(numberParam(q.avatarX, width * 0.04, 0, width - avatarSize));
     const avatarY = Math.round(numberParam(q.avatarY, height * 0.73, 0, height - avatarSize));
 
-    // Text shuru hobe DP er pashe theke, ebong bubble er baseline calculate hobe
+    // Text & bubble-er proper alignment (DP er thik pashe spacing rekhe)
     const startX = numberParam(q.textX, avatarX + avatarSize + 16, 0, width);
     const startY = numberParam(q.textY, avatarY + avatarSize - 4, 0, height);
 
