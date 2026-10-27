@@ -13,7 +13,7 @@ const sharp = require("sharp");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const TEMPLATE_URL = "https://i.imgur.com/Dx1SwRp.jpeg";
+const TEMPLATE_URL = "https://i.imgur.com/eiJWxND.jpeg";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 app.disable("x-powered-by");
@@ -159,24 +159,51 @@ function makeOverlay({
 }) {
   const messages = String(text).slice(0, 2000).split("|").slice(0, 15);
 
+  let allLines = [];
+  for (const message of messages) {
+    const lines = wrapText(message, 32);
+    allLines.push(...lines);
+  }
+
+  const lineHeight = fontSize * 1.35;
+  const paddingX = 14;
+  const paddingY = 10;
+  
+  // Find longest line to calculate exact dynamic bubble width
+  let maxLineLength = 1;
+  for (const line of allLines) {
+    if (line.length > maxLineLength) maxLineLength = line.length;
+  }
+
+  const bubbleWidth = Math.max(50, maxLineLength * (fontSize * 0.52) + paddingX * 2);
+  const bubbleHeight = allLines.length * lineHeight + paddingY * 2;
+  const bubbleX = textX - paddingX;
+  const bubbleY = textY - fontSize - paddingY + 2;
+
   let output = `
     <svg xmlns="http://www.w3.org/2000/svg"
       width="${width}" height="${height}">
   `;
 
-  // Messages (Inside the chat bubble based on the new template layout)
-  let y = textY;
+  // Dynamic grey chat bubble background that covers short or long text perfectly
+  output += `
+    <rect x="${bubbleX}" y="${bubbleY}"
+      width="${bubbleWidth}" height="${bubbleHeight}"
+      rx="16" ry="16"
+      fill="#262626" />
+  `;
 
+  // Render text lines with Instagram standard font style & size
+  let y = textY;
   for (const message of messages) {
     const lines = wrapText(message, 32);
-    const lineHeight = fontSize * 1.4;
 
     for (const line of lines) {
       if (y > height - 10) break;
 
       output += `
         <text x="${textX}" y="${y}"
-          font-family="Arial, sans-serif"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
           font-size="${fontSize}"
           fill="#ffffff">${escapeXml(line)}</text>
       `;
@@ -184,7 +211,7 @@ function makeOverlay({
       y += lineHeight;
     }
 
-    y += fontSize * 0.5;
+    y += fontSize * 0.2;
   }
 
   output += "</svg>";
@@ -204,7 +231,6 @@ app.get("/api/fakechat", async (req, res) => {
 
     const text = String(q.text).slice(0, 2000);
 
-    // Download the new template.
     const template = await downloadImage(TEMPLATE_URL);
 
     const metadata = await sharp(template).metadata();
@@ -218,16 +244,13 @@ app.get("/api/fakechat", async (req, res) => {
     const minSide = Math.min(width, height);
     const fontSize = numberParam(
       q.fontSize,
-      Math.max(14, Math.round(minSide * 0.032)),
+      Math.max(13, Math.round(minSide * 0.030)),
       10,
       100
     );
 
-    /*
-     * Adjusted default positions to match the new template layout (bubble text & bottom-left avatar).
-     */
-    const textX = numberParam(q.textX, width * 0.15, 0, width);
-    const textY = numberParam(q.textY, height * 0.57, 0, height);
+    const textX = numberParam(q.textX, width * 0.18, 0, width);
+    const textY = numberParam(q.textY, height * 0.58, 0, height);
 
     const overlays = [];
 
@@ -247,7 +270,7 @@ app.get("/api/fakechat", async (req, res) => {
         avatarSize
       );
 
-      // Positioned near the bottom left where the red DP/avatar placeholder is located in the screenshot
+      // Positioned exactly on top of the red DP placeholder
       const left = Math.round(numberParam(
         q.avatarX,
         width * 0.04,
@@ -261,23 +284,6 @@ app.get("/api/fakechat", async (req, res) => {
         0,
         height - avatarSize
       ));
-
-    // Support for avatarurl parameter name requested by user
-    }
-
-    // Adding avatar overlay if present
-    if (avatarUrl) {
-      const avatarBuffer = await downloadImage(String(avatarUrl));
-      const avatarSize = numberParam(
-        q.avatarSize,
-        Math.round(minSide * 0.10),
-        20,
-        Math.round(minSide * 0.4)
-      );
-      const avatar = await makeCircularAvatar(avatarBuffer, avatarSize);
-      
-      const left = Math.round(numberParam(q.avatarX, width * 0.04, 0, width - avatarSize));
-      const top = Math.round(numberParam(q.avatarY, height * 0.78, 0, height - avatarSize));
 
       overlays.push({
         input: avatar,
