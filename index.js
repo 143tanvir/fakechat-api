@@ -169,13 +169,12 @@ function makeOverlay({
   const paddingX = 14;
   const paddingY = 10;
   
-  // Find longest line to calculate exact dynamic bubble width
   let maxLineLength = 1;
   for (const line of allLines) {
     if (line.length > maxLineLength) maxLineLength = line.length;
   }
 
-  const bubbleWidth = Math.max(50, maxLineLength * (fontSize * 0.52) + paddingX * 2);
+  const bubbleWidth = Math.max(45, maxLineLength * (fontSize * 0.52) + paddingX * 2);
   const bubbleHeight = allLines.length * lineHeight + paddingY * 2;
   const bubbleX = textX - paddingX;
   const bubbleY = textY - fontSize - paddingY + 2;
@@ -185,15 +184,14 @@ function makeOverlay({
       width="${width}" height="${height}">
   `;
 
-  // Dynamic grey chat bubble background that covers short or long text perfectly
+  // Dynamic Instagram style dark grey chat bubble
   output += `
     <rect x="${bubbleX}" y="${bubbleY}"
       width="${bubbleWidth}" height="${bubbleHeight}"
-      rx="16" ry="16"
+      rx="18" ry="18"
       fill="#262626" />
   `;
 
-  // Render text lines with Instagram standard font style & size
   let y = textY;
   for (const message of messages) {
     const lines = wrapText(message, 32);
@@ -249,8 +247,20 @@ app.get("/api/fakechat", async (req, res) => {
       100
     );
 
-    const textX = numberParam(q.textX, width * 0.18, 0, width);
-    const textY = numberParam(q.textY, height * 0.58, 0, height);
+    const avatarSize = numberParam(
+      q.avatarSize,
+      Math.round(minSide * 0.09),
+      20,
+      Math.round(minSide * 0.4)
+    );
+
+    // Precise coordinates matching the provided screenshot layout
+    const avatarX = Math.round(numberParam(q.avatarX, width * 0.04, 0, width - avatarSize));
+    const avatarY = Math.round(numberParam(q.avatarY, height * 0.72, 0, height - avatarSize));
+
+    // Text & bubble starts right beside the avatar horizontally, aligned vertically
+    const textX = numberParam(q.textX, avatarX + avatarSize + 16, 0, width);
+    const textY = numberParam(q.textY, avatarY + (avatarSize * 0.58), 0, height);
 
     const overlays = [];
 
@@ -258,37 +268,12 @@ app.get("/api/fakechat", async (req, res) => {
 
     if (avatarUrl) {
       const avatarBuffer = await downloadImage(String(avatarUrl));
-      const avatarSize = numberParam(
-        q.avatarSize,
-        Math.round(minSide * 0.10),
-        20,
-        Math.round(minSide * 0.4)
-      );
-
-      const avatar = await makeCircularAvatar(
-        avatarBuffer,
-        avatarSize
-      );
-
-      // Positioned exactly on top of the red DP placeholder
-      const left = Math.round(numberParam(
-        q.avatarX,
-        width * 0.04,
-        0,
-        width - avatarSize
-      ));
-
-      const top = Math.round(numberParam(
-        q.avatarY,
-        height * 0.78,
-        0,
-        height - avatarSize
-      ));
+      const avatar = await makeCircularAvatar(avatarBuffer, avatarSize);
 
       overlays.push({
         input: avatar,
-        left,
-        top
+        left: avatarX,
+        top: avatarY
       });
     }
 
