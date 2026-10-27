@@ -21,7 +21,7 @@ app.disable("x-powered-by");
 app.get("/", (req, res) => {
   res.type("html").send(`
     <h2>Tanvir143 FakeChat API</h2>
-    <p>Status: Online</p>
+    <p>Status: Xnline</p>
     <p>Endpoint: /api/fakechat?name=Tanvir&avatarurl=IMAGE_URL&text=Hi</p>
   `);
 });
@@ -185,11 +185,11 @@ function makeOverlay({
       width="${width}" height="${height}">
   `;
 
-  // Corner radius 35 kore dewa holo jate aro besi gol/smooth hoy
+  // Corner radius aro bariye ebong smooth kore dewa holo
   output += `
     <rect x="${bubbleX}" y="${bubbleY}"
       width="${bubbleWidth}" height="${bubbleHeight}"
-      rx="35" ry="35"
+      rx="26" ry="26"
       fill="#262626" />
   `;
 
@@ -258,8 +258,8 @@ app.get("/api/fakechat", async (req, res) => {
     const avatarX = Math.round(numberParam(q.avatarX, width * 0.04, 0, width - avatarSize));
     const avatarY = Math.round(numberParam(q.avatarY, height * 0.73, 0, height - avatarSize));
 
-    // DP theke text er distance aro ektu bariye dewa holo (+26 px gap)
-    const startX = numberParam(q.textX, avatarX + avatarSize + 26, 0, width);
+    // DP theke text er distance aro bariye 32 px kora holo
+    const startX = numberParam(q.textX, avatarX + avatarSize + 32, 0, width);
     const startY = numberParam(q.textY, avatarY + avatarSize - 4, 0, height);
 
     const overlays = [];
