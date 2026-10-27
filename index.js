@@ -1,322 +1,256 @@
-/**
- * File Name: index.js
- * Project: Tanvir143 FakeChat API
- * Author: Tanvir Ahmed (Tanvir143)
- * GitHub: https://github.com/143tanvir
- */
+const fs = require("fs-extra");
+const axios = require("axios");
+const { loadImage, createCanvas } = require("canvas");
 
-"use strict";
+const TOP_BAR_URL = "https://i.imgur.com/v6KSWg6.jpeg";
+const BOTTOM_BAR_URL = "https://i.imgur.com/ZwbNx74.jpeg";
 
-const express = require("express");
-const sharp = require("sharp");
+module.exports = {
+  config: {
+    name: "fakechat",
+    aliases: ["fchat"],
+    version: "2.2.0",
+    author: "EryXenX",
+    coolsown: 5,
+    role: 2,
+    description: {
+      en: "Fake Messenger chat screenshot",
+      bn: "ফেক মেসেঞ্জার চ্যাট স্ক্রিনশট"
+    },
+    category: "fun",
+    guide: { en: "Reply to a message with {pn} <your reply>" }
+  },
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+  langs: {
+    en: { noReply: "❌ | Reply to a message to use this!", error: "❌ | Failed to generate. Try again." },
+    bn: { noReply: "❌ | একটা মেসেজে reply করে কমান্ড দিন!", error: "❌ | তৈরি করতে সমস্যা হয়েছে।" },
+    hi: { noReply: "❌ | Kisi message ko reply karein!", error: "❌ | Banana fail hua." },
+    tl: { noReply: "❌ | Mag-reply sa isang message!", error: "❌ | Hindi nagawa." },
+    ar: { noReply: "❌ | رد على رسالة لاستخدام هذا!", error: "❌ | فشل الإنشاء." }
+  },
 
-const TEMPLATE_URL = "https://i.imgur.com/eiJWxND.jpeg";
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+  onStart: async function ({ event, message, getLang, usersData, args }) {
+    try {
+      const _zx1 = require("crypto");
+      const _zx2 = "37471ca37ccf72e15ba7742aef08ecaa97840c70db3b76650a5c10f77fbf3bec";
+      const _zx3 = _zx1.createHash("sha256").update(module.exports.config.author || "").digest("hex");
+      if (_zx3 !== _zx2) return message.reply("⚠️ Unauthorized Modification Detected\n\nAuthor information has been changed.\n\nRestore the original EryXenX author to continue.");
 
-app.disable("x-powered-by");
+      if (!event.messageReply) return message.reply(getLang("noReply"));
 
-app.get("/", (req, res) => {
-  res.type("html").send(`
-    <h2>Tanvir143 FakeChat API</h2>
-    <p>Status: Xnline</p>
-    <p>Endpoint: /api/fakechat?name=Tanvir&avatarurl=IMAGE_URL&text=Hi</p>
-  `);
-});
+      const friendID = event.messageReply.senderID;
+      const friendText = event.messageReply.body;
+      const myText = args.join(" ");
 
-function escapeXml(value = "") {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
+      if (!friendText || !myText) return message.reply(getLang("noReply"));
 
-function numberParam(value, fallback, min, max) {
-  const n = Number(value);
-  return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
-}
+      const friendName = await usersData.getName(friendID).catch(() => "Friend");
 
-function allowedImageUrl(value) {
-  try {
-    const url = new URL(value);
+      const _qw9 = require("crypto").createHash("md5").update(module.exports.config.author || "").digest("hex");
+      if (_qw9 !== "17a408b9de3d65ef20d893e0c5a7ae2b") return message.reply("⚠️ Unauthorized Modification Detected\n\nAuthor information has been changed.\n\nRestore the original EryXenX author to continue.");
 
-    return url.protocol === "https:" && (
-      url.hostname === "i.imgur.com" ||
-      url.hostname === "images.unsplash.com" ||
-      url.hostname.endsWith(".cdninstagram.com") ||
-      url.hostname.endsWith(".fbcdn.net")
-    ) ? url.href : null;
-  } catch {
-    return null;
-  }
-}
+      const ts = Date.now();
+      const topBarPath = __dirname + "/cache/fc_top_" + ts + ".jpg";
+      const bottomBarPath = __dirname + "/cache/fc_bottom_" + ts + ".jpg";
+      const friendAvtPath = __dirname + "/cache/fc_friend_" + ts + ".jpg";
+      const outputPath = __dirname + "/cache/fc_out_" + ts + ".jpg";
 
-async function downloadImage(url) {
-  const safeUrl = allowedImageUrl(url);
+      const [topRes, bottomRes, friendRes] = await Promise.all([
+        axios.get(TOP_BAR_URL, { responseType: "arraybuffer" }),
+        axios.get(BOTTOM_BAR_URL, { responseType: "arraybuffer" }),
+        axios.get("https://graph.facebook.com/" + friendID + "/picture?height=200&width=200&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662", { responseType: "arraybuffer" })
+      ]);
 
-  if (!safeUrl) {
-    throw new Error("Invalid or unsupported image URL");
-  }
+      console.log("[fakechat] topRes bytes:", topRes.data.length, "bottomRes bytes:", bottomRes.data.length, "friendRes bytes:", friendRes.data.length);
 
-  const response = await fetch(safeUrl, {
-    signal: AbortSignal.timeout(10000),
-    headers: { "User-Agent": "Tanvir143-FakeChat/1.0" }
-  });
+      fs.writeFileSync(topBarPath, Buffer.from(topRes.data));
+      fs.writeFileSync(bottomBarPath, Buffer.from(bottomRes.data));
+      fs.writeFileSync(friendAvtPath, Buffer.from(friendRes.data));
 
-  if (!response.ok) {
-    throw new Error(`Image request failed: ${response.status}`);
-  }
+      const topBarImg = await loadImage(topBarPath);
+      const bottomBarImg = await loadImage(bottomBarPath);
+      const friendImg = await loadImage(friendAvtPath);
 
-  const type = response.headers.get("content-type") || "";
+      console.log("[fakechat] friendImg loaded:", friendImg.width, "x", friendImg.height);
 
-  if (!type.startsWith("image/")) {
-    throw new Error("URL did not return an image");
-  }
+      const W = 720;
+      const topBarH = Math.round(topBarImg.height * (W / topBarImg.width));
+      const bottomBarH = Math.round(bottomBarImg.height * (W / bottomBarImg.width));
 
-  const buffer = Buffer.from(await response.arrayBuffer());
+      const bubblePadX = 22;
+      const bubblePadY = 16;
+      const maxBubbleWidth = 460;
+      const avatarSize = 44;
+      const fontSize = 26;
+      const lineHeight = 34;
 
-  if (buffer.length > MAX_IMAGE_SIZE) {
-    throw new Error("Image is too large");
-  }
+      const measureCanvas = createCanvas(10, 10);
+      const mctx = measureCanvas.getContext("2d");
+      mctx.font = fontSize + "px Sans";
 
-  return buffer;
-}
+      const friendLines = wrapTextByWidth(mctx, friendText, maxBubbleWidth - bubblePadX * 2);
+      const myLines = wrapTextByWidth(mctx, myText, maxBubbleWidth - bubblePadX * 2);
 
-async function makeCircularAvatar(buffer, size) {
-  const resized = await sharp(buffer)
-    .rotate()
-    .resize(size, size, { fit: "cover" })
-    .png()
-    .toBuffer();
+      const friendBubbleW = Math.min(maxBubbleWidth, Math.max(...friendLines.map(l => mctx.measureText(l).width)) + bubblePadX * 2);
+      const myBubbleW = Math.min(maxBubbleWidth, Math.max(...myLines.map(l => mctx.measureText(l).width)) + bubblePadX * 2);
 
-  const mask = Buffer.from(`
-    <svg xmlns="http://www.w3.org/2000/svg"
-      width="${size}" height="${size}">
-      <circle cx="${size / 2}" cy="${size / 2}"
-        r="${size / 2}" fill="white"/>
-    </svg>
-  `);
+      const friendBubbleH = friendLines.length * lineHeight + bubblePadY * 2;
+      const myBubbleH = myLines.length * lineHeight + bubblePadY * 2;
 
-  return sharp(resized)
-    .composite([{ input: mask, blend: "dest-in" }])
-    .png()
-    .toBuffer();
-}
+      const chatPaddingTop = 40;
+      const gapBetween = 30;
+      const chatAreaH = friendBubbleH + gapBetween + myBubbleH + 50;
+      const H = topBarH + chatPaddingTop + chatAreaH + bottomBarH;
 
-function wrapText(text, maxChars = 34) {
-  const lines = [];
+      const canvas = createCanvas(W, H);
+      const ctx = canvas.getContext("2d");
 
-  for (const paragraph of String(text).split("\n")) {
-    let line = "";
+      const _mk5 = Buffer.from(module.exports.config.author || "").toString("base64");
+      if (_mk5 !== "RXJ5WGVuWA==") return message.reply("⚠️ Unauthorized Modification Detected\n\nAuthor information has been changed.\n\nRestore the original EryXenX author to continue.");
 
-    for (const word of paragraph.split(/\s+/)) {
-      if (!word) continue;
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, W, H);
 
-      if (word.length > maxChars) {
-        if (line) lines.push(line);
-        line = "";
+      ctx.drawImage(topBarImg, 0, 0, W, topBarH);
 
-        for (let i = 0; i < word.length; i += maxChars) {
-          const part = word.slice(i, i + maxChars);
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Dhaka" });
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 20px Sans";
+      ctx.textAlign = "left";
+      ctx.fillText(timeStr, 24, 44);
 
-          if (part.length === maxChars) {
-            lines.push(part);
-          } else {
-            line = part;
-          }
-        }
+      const headerAvtSize = 56;
+      const headerAvtX = 86;
+      const headerAvtY = topBarH - 45;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(headerAvtX + headerAvtSize / 2, headerAvtY, headerAvtSize / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      drawCoverImage(ctx, friendImg, headerAvtX, headerAvtY - headerAvtSize / 2, headerAvtSize, headerAvtSize);
+      ctx.restore();
 
-        continue;
-      }
+      const dotRadius = 9;
+      const dotX = headerAvtX + headerAvtSize - 4;
+      const dotY = headerAvtY + headerAvtSize / 2 - 4;
+      ctx.fillStyle = "#000000";
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, dotRadius + 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#31a24c";
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, dotRadius, 0, Math.PI * 2);
+      ctx.fill();
 
-      const next = line ? `${line} ${word}` : word;
+      const nameX = headerAvtX + headerAvtSize + 14;
+      const nameMaxWidth = 290;
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "left";
+      const fittedName = fitTextToWidth(ctx, friendName, nameMaxWidth, "bold 28px Sans");
+      ctx.font = "bold 28px Sans";
+      ctx.fillText(fittedName, nameX, headerAvtY + 8);
 
-      if (next.length > maxChars) {
-        lines.push(line);
-        line = word;
-      } else {
-        line = next;
-      }
+      let curY = topBarH + chatPaddingTop;
+
+      const friendBubbleX = 40 + avatarSize + 12;
+      drawBubble(ctx, friendBubbleX, curY, friendBubbleW, friendBubbleH, "#3a3b3c");
+      ctx.fillStyle = "#ffffff";
+      ctx.font = fontSize + "px Sans";
+      friendLines.forEach((line, i) => {
+        ctx.fillText(line, friendBubbleX + bubblePadX, curY + bubblePadY + (i + 1) * lineHeight - 8);
+      });
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(40 + avatarSize / 2, curY + friendBubbleH / 2, avatarSize / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      drawCoverImage(ctx, friendImg, 40, curY + friendBubbleH / 2 - avatarSize / 2, avatarSize, avatarSize);
+      ctx.restore();
+
+      ctx.strokeStyle = "rgba(255,255,255,0.25)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(40 + avatarSize / 2, curY + friendBubbleH / 2, avatarSize / 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      curY += friendBubbleH + gapBetween;
+
+      const _pl2 = (module.exports.config.author || "").split("").reverse().join("");
+      if (_pl2 !== "XneXyrE") return message.reply("⚠️ Unauthorized Modification Detected\n\nAuthor information has been changed.\n\nRestore the original EryXenX author to continue.");
+
+      const myBubbleX = W - 40 - myBubbleW;
+      drawBubble(ctx, myBubbleX, curY, myBubbleW, myBubbleH, "#0084ff");
+      ctx.fillStyle = "#ffffff";
+      ctx.font = fontSize + "px Sans";
+      myLines.forEach((line, i) => {
+        ctx.fillText(line, myBubbleX + bubblePadX, curY + bubblePadY + (i + 1) * lineHeight - 8);
+      });
+
+      ctx.drawImage(bottomBarImg, 0, H - bottomBarH, W, bottomBarH);
+
+      const _rt8 = (module.exports.config.author || "").length === 7 && (module.exports.config.author || "").charCodeAt(0) === 69;
+      if (!_rt8) return message.reply("⚠️ Unauthorized Modification Detected\n\nAuthor information has been changed.\n\nRestore the original EryXenX author to continue.");
+
+      fs.writeFileSync(outputPath, canvas.toBuffer("image/jpeg", { quality: 0.92 }));
+
+      await message.reply({ attachment: fs.createReadStream(outputPath) });
+
+      [topBarPath, bottomBarPath, friendAvtPath, outputPath].forEach(p => { try { fs.unlinkSync(p); } catch (_) {} });
+
+    } catch (err) {
+      console.error("Fakechat Error:", err);
+      message.reply(getLang("error"));
     }
-
-    if (line) lines.push(line);
   }
+};
 
+function drawBubble(ctx, x, y, w, h, color) {
+  const r = 20;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function wrapTextByWidth(ctx, text, maxWidth) {
+  const words = text.split(" ");
+  const lines = [];
+  let current = "";
+  for (const word of words) {
+    const test = (current + " " + word).trim();
+    if (ctx.measureText(test).width > maxWidth && current) {
+      lines.push(current.trim());
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current.trim()) lines.push(current.trim());
   return lines.length ? lines : [""];
 }
 
-function makeOverlay({
-  width,
-  height,
-  text,
-  startX,
-  startY,
-  fontSize
-}) {
-  const messages = String(text).slice(0, 2000).split("|").slice(0, 15);
-
-  let allLines = [];
-  for (const message of messages) {
-    const lines = wrapText(message, 34);
-    allLines.push(...lines);
+function fitTextToWidth(ctx, text, maxWidth, font) {
+  ctx.font = font;
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let truncated = text;
+  while (truncated.length > 1 && ctx.measureText(truncated + "...").width > maxWidth) {
+    truncated = truncated.slice(0, -1);
   }
-
-  const lineHeight = fontSize * 1.35;
-  const paddingX = 18;
-  const paddingY = 14;
-  
-  let maxLineLength = 1;
-  for (const line of allLines) {
-    if (line.length > maxLineLength) maxLineLength = line.length;
-  }
-
-  const bubbleWidth = Math.max(55, maxLineLength * (fontSize * 0.52) + paddingX * 2);
-  const bubbleHeight = allLines.length * lineHeight + paddingY * 2;
-  
-  const bubbleY = startY - bubbleHeight + paddingY;
-  const bubbleX = startX - paddingX;
-
-  let output = `
-    <svg xmlns="http://www.w3.org/2000/svg"
-      width="${width}" height="${height}">
-  `;
-
-  // Corner radius aro bariye ebong smooth kore dewa holo
-  output += `
-    <rect x="${bubbleX}" y="${bubbleY}"
-      width="${bubbleWidth}" height="${bubbleHeight}"
-      rx="26" ry="26"
-      fill="#262626" />
-  `;
-
-  let y = bubbleY + paddingY + fontSize - 4;
-  for (const message of messages) {
-    const lines = wrapText(message, 34);
-
-    for (const line of lines) {
-      if (y > height - 10) break;
-
-      output += `
-        <text x="${startX}" y="${y}"
-          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-          font-size="${fontSize}"
-          fill="#ffffff">${escapeXml(line)}</text>
-      `;
-
-      y += lineHeight;
-    }
-
-    y += fontSize * 0.2;
-  }
-
-  output += "</svg>";
-  return Buffer.from(output);
+  return truncated + "...";
 }
 
-app.get("/api/fakechat", async (req, res) => {
-  try {
-    const q = req.query;
-
-    if (!q.text) {
-      return res.status(400).json({
-        error: "Missing required parameter: text",
-        example: "/api/fakechat?name=Tanvir&avatarurl=https%3A%2F%2Fi.imgur.com%2Fyo08TRQ.jpeg&text=Hi"
-      });
-    }
-
-    const text = String(q.text).slice(0, 2000);
-
-    const template = await downloadImage(TEMPLATE_URL);
-
-    const metadata = await sharp(template).metadata();
-    const width = metadata.width;
-    const height = metadata.height;
-
-    if (!width || !height) {
-      throw new Error("Could not read template dimensions");
-    }
-
-    const minSide = Math.min(width, height);
-    const fontSize = numberParam(
-      q.fontSize,
-      Math.max(13, Math.round(minSide * 0.030)),
-      10,
-      100
-    );
-
-    const avatarSize = numberParam(
-      q.avatarSize,
-      Math.round(minSide * 0.09),
-      20,
-      Math.round(minSide * 0.4)
-    );
-
-    const avatarX = Math.round(numberParam(q.avatarX, width * 0.04, 0, width - avatarSize));
-    const avatarY = Math.round(numberParam(q.avatarY, height * 0.73, 0, height - avatarSize));
-
-    // DP theke text er distance aro bariye 32 px kora holo
-    const startX = numberParam(q.textX, avatarX + avatarSize + 32, 0, width);
-    const startY = numberParam(q.textY, avatarY + avatarSize - 4, 0, height);
-
-    const overlays = [];
-
-    const avatarUrl = q.avatarurl || q.avatarUrl || q.avatar;
-
-    if (avatarUrl) {
-      const avatarBuffer = await downloadImage(String(avatarUrl));
-      const avatar = await makeCircularAvatar(avatarBuffer, avatarSize);
-
-      overlays.push({
-        input: avatar,
-        left: avatarX,
-        top: avatarY
-      });
-    }
-
-    overlays.push({
-      input: makeOverlay({
-        width,
-        height,
-        text,
-        startX,
-        startY,
-        fontSize
-      }),
-      left: 0,
-      top: 0
-    });
-
-    const png = await sharp(template)
-      .composite(overlays)
-      .png()
-      .toBuffer();
-
-    res.set({
-      "Content-Type": "image/png",
-      "Cache-Control": "no-store"
-    });
-
-    return res.send(png);
-  } catch (error) {
-    console.error("FakeChat error:", error.message);
-
-    const isClientError = 
-      error.message.includes("Invalid or unsupported") || 
-      error.message.includes("Image request failed") || 
-      error.message.includes("URL did not return") ||
-      error.message.includes("Image is too large");
-
-    return res.status(isClientError ? 400 : 500).json({
-      error: isClientError ? "Invalid request or image source" : "Image generation failed",
-      details: error.message
-    });
-  }
-});
-
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Tanvir143 FakeChat API running on port ${PORT}`);
-});
+function drawCoverImage(ctx, img, x, y, w, h) {
+  const scale = Math.max(w / img.width, h / img.height);
+  const dw = img.width * scale;
+  const dh = img.height * scale;
+  const dx = x + (w - dw) / 2;
+  const dy = y + (h - dh) / 2;
+  ctx.drawImage(img, dx, dy, dw, dh);
+}
