@@ -185,11 +185,11 @@ function makeOverlay({
       width="${width}" height="${height}">
   `;
 
-  // Corner radius 25 dewa holo
+  // Corner radius 35 kore dewa holo jate aro besi gol/smooth hoy
   output += `
     <rect x="${bubbleX}" y="${bubbleY}"
       width="${bubbleWidth}" height="${bubbleHeight}"
-      rx="25" ry="25"
+      rx="35" ry="35"
       fill="#262626" />
   `;
 
@@ -258,8 +258,8 @@ app.get("/api/fakechat", async (req, res) => {
     const avatarX = Math.round(numberParam(q.avatarX, width * 0.04, 0, width - avatarSize));
     const avatarY = Math.round(numberParam(q.avatarY, height * 0.73, 0, height - avatarSize));
 
-    // DP theke text er distance ektu bariye dewa holo (+22 px gap)
-    const startX = numberParam(q.textX, avatarX + avatarSize + 22, 0, width);
+    // DP theke text er distance aro ektu bariye dewa holo (+26 px gap)
+    const startX = numberParam(q.textX, avatarX + avatarSize + 26, 0, width);
     const startY = numberParam(q.textY, avatarY + avatarSize - 4, 0, height);
 
     const overlays = [];
