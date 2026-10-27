@@ -1,0 +1,17 @@
+{
+  "name": "tanvir143-fakechat-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Instagram-style FakeChat Image API",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "sharp": "^0.34.3"
+  }
+}
