@@ -13,7 +13,7 @@ const sharp = require("sharp");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const TEMPLATE_URL = "https://i.imgur.com/3ulwWrB.jpeg";
+const TEMPLATE_URL = "https://i.imgur.com/Dx1SwRp.jpeg";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 app.disable("x-powered-by");
@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
   res.type("html").send(`
     <h2>Tanvir143 FakeChat API</h2>
     <p>Status: Online</p>
-    <p>Endpoint: /api/fakechat?name=Tanvir&avatarUrl=IMAGE_URL&text=Hi</p>
+    <p>Endpoint: /api/fakechat?name=Tanvir&avatarurl=IMAGE_URL&text=Hi</p>
   `);
 });
 
@@ -107,7 +107,7 @@ async function makeCircularAvatar(buffer, size) {
     .toBuffer();
 }
 
-function wrapText(text, maxChars = 30) {
+function wrapText(text, maxChars = 32) {
   const lines = [];
 
   for (const paragraph of String(text).split("\n")) {
@@ -152,15 +152,11 @@ function wrapText(text, maxChars = 30) {
 function makeOverlay({
   width,
   height,
-  name,
   text,
-  nameX,
-  nameY,
   textX,
   textY,
   fontSize
 }) {
-  const safeName = escapeXml(name);
   const messages = String(text).slice(0, 2000).split("|").slice(0, 15);
 
   let output = `
@@ -168,23 +164,11 @@ function makeOverlay({
       width="${width}" height="${height}">
   `;
 
-  // Username
-  output += `
-    <text x="${nameX}" y="${nameY}"
-      font-family="Arial, sans-serif"
-      font-size="${fontSize}"
-      font-weight="700"
-      fill="#262626"
-      stroke="#ffffff"
-      stroke-width="2"
-      paint-order="stroke">${safeName}</text>
-  `;
-
-  // Messages
+  // Messages (Inside the chat bubble based on the new template layout)
   let y = textY;
 
   for (const message of messages) {
-    const lines = wrapText(message, 30);
+    const lines = wrapText(message, 32);
     const lineHeight = fontSize * 1.4;
 
     for (const line of lines) {
@@ -194,10 +178,7 @@ function makeOverlay({
         <text x="${textX}" y="${y}"
           font-family="Arial, sans-serif"
           font-size="${fontSize}"
-          fill="#262626"
-          stroke="#ffffff"
-          stroke-width="2"
-          paint-order="stroke">${escapeXml(line)}</text>
+          fill="#ffffff">${escapeXml(line)}</text>
       `;
 
       y += lineHeight;
@@ -217,14 +198,13 @@ app.get("/api/fakechat", async (req, res) => {
     if (!q.text) {
       return res.status(400).json({
         error: "Missing required parameter: text",
-        example: "/api/fakechat?name=Tanvir&avatarUrl=https%3A%2F%2Fi.imgur.com%2Fyo08TRQ.jpeg&text=Hi"
+        example: "/api/fakechat?name=Tanvir&avatarurl=https%3A%2F%2Fi.imgur.com%2Fyo08TRQ.jpeg&text=Hi"
       });
     }
 
-    const name = String(q.name || "Instagram User").slice(0, 60);
     const text = String(q.text).slice(0, 2000);
 
-    // Download the chosen template.
+    // Download the new template.
     const template = await downloadImage(TEMPLATE_URL);
 
     const metadata = await sharp(template).metadata();
@@ -238,29 +218,26 @@ app.get("/api/fakechat", async (req, res) => {
     const minSide = Math.min(width, height);
     const fontSize = numberParam(
       q.fontSize,
-      Math.max(16, Math.round(minSide * 0.035)),
+      Math.max(14, Math.round(minSide * 0.032)),
       10,
       100
     );
 
     /*
-     * Default positions are proportional to the template size.
-     * Supply coordinate parameters to fine-tune placement.
+     * Adjusted default positions to match the new template layout (bubble text & bottom-left avatar).
      */
-    const nameX = numberParam(q.nameX, width * 0.20, 0, width);
-    const nameY = numberParam(q.nameY, height * 0.25, 0, height);
-    const textX = numberParam(q.textX, width * 0.12, 0, width);
-    const textY = numberParam(q.textY, height * 0.55, 0, height);
+    const textX = numberParam(q.textX, width * 0.15, 0, width);
+    const textY = numberParam(q.textY, height * 0.57, 0, height);
 
     const overlays = [];
 
-    const avatarUrl = q.avatarUrl || q.avatar;
+    const avatarUrl = q.avatarurl || q.avatarUrl || q.avatar;
 
     if (avatarUrl) {
       const avatarBuffer = await downloadImage(String(avatarUrl));
       const avatarSize = numberParam(
         q.avatarSize,
-        Math.round(minSide * 0.14),
+        Math.round(minSide * 0.10),
         20,
         Math.round(minSide * 0.4)
       );
@@ -270,19 +247,37 @@ app.get("/api/fakechat", async (req, res) => {
         avatarSize
       );
 
+      // Positioned near the bottom left where the red DP/avatar placeholder is located in the screenshot
       const left = Math.round(numberParam(
         q.avatarX,
-        width * 0.08,
+        width * 0.04,
         0,
         width - avatarSize
       ));
 
       const top = Math.round(numberParam(
         q.avatarY,
-        height * 0.18,
+        height * 0.78,
         0,
         height - avatarSize
       ));
+
+    // Support for avatarurl parameter name requested by user
+    }
+
+    // Adding avatar overlay if present
+    if (avatarUrl) {
+      const avatarBuffer = await downloadImage(String(avatarUrl));
+      const avatarSize = numberParam(
+        q.avatarSize,
+        Math.round(minSide * 0.10),
+        20,
+        Math.round(minSide * 0.4)
+      );
+      const avatar = await makeCircularAvatar(avatarBuffer, avatarSize);
+      
+      const left = Math.round(numberParam(q.avatarX, width * 0.04, 0, width - avatarSize));
+      const top = Math.round(numberParam(q.avatarY, height * 0.78, 0, height - avatarSize));
 
       overlays.push({
         input: avatar,
@@ -295,10 +290,7 @@ app.get("/api/fakechat", async (req, res) => {
       input: makeOverlay({
         width,
         height,
-        name,
         text,
-        nameX,
-        nameY,
         textX,
         textY,
         fontSize
@@ -321,8 +313,14 @@ app.get("/api/fakechat", async (req, res) => {
   } catch (error) {
     console.error("FakeChat error:", error.message);
 
-    return res.status(500).json({
-      error: "Image generation failed",
+    const isClientError = 
+      error.message.includes("Invalid or unsupported") || 
+      error.message.includes("Image request failed") || 
+      error.message.includes("URL did not return") ||
+      error.message.includes("Image is too large");
+
+    return res.status(isClientError ? 400 : 500).json({
+      error: isClientError ? "Invalid request or image source" : "Image generation failed",
       details: error.message
     });
   }
